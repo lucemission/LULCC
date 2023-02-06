@@ -178,8 +178,12 @@ class Coordinate:
         self.carbonEqu[YEAR_LATEST,EQ_SOILSLOW, SECOND, :] = self.carbonEqu[YEAR_LATEST,EQ_SOILSLOW, SECOND, :] + self.SigmaHarvestEquNext
         
         # RUMUS 32
+        # PERLU DIPERHATIKAN LAGI
+        self.SigmaRapid = np.maximum(0, self.SigmaHarvest.sum(axis=0) - self.area * self.harvest_transition_pft_fraction.sum(axis=0) * c.timeMinimumHarvest)
+        self.carbonExcess[YEAR_LATEST, SECOND, HARVEST, :] = self.carbonExcess[YEAR_LATEST, SECOND, HARVEST, :] + self.SigmaRapid
         
-        
+        # RUMUS 33
+        self.carbonExcess[YEAR_LATEST, EX_SOILSLOW, SECOND, HARVEST, :] = self.carbonExcess[YEAR_LATEST, EX_SOILSLOW, SECOND, HARVEST, :] - self.SigmaRapid + self.SigmaHarvestEquPrev.sum(axis=0) - self.SigmaHarvestEquNext
         
     # RUMUS 6
     # def relaxation():

@@ -20,20 +20,6 @@ carbonEquDense = np.array([
       [   58,   58,   67,   67,  103,  103,34,34, 94, 21,101]]  # Crop      - Soil
 ])
 
-# harvestEquDense = np.array([
-#       #PFT 1     2     3     4     5     6  7  8   9  10  11
-#     [# Biomass
-#       [  [200,  160,  160,  135,   90,   90],[27,27,  7, 18,  3,0]], # Primary   - Veg
-#       [  [150,  120,  120,  100,   68,   68],[27,27,  7, 18,  0,0]], # Secondary - Veg
-#       [  [18,   18,    7,    7,    7,    7],[18, 7,  7, 18,  7,0]], # Pasture   - Veg
-#       [  [ 5,    5,    5,    5,    5,    5], [5, 5,  3,  5,  1,0]]], # Crop      - Veg
-#     [# Soil
-#       [  117,  117,  134,  134,  206,  206,69,69,189, 42,204], # Primary   - Soil
-#       [   88,   88,  120,  120,  185,  185,69,69,189, 42,204], # Secondary - Soil
-#       [87.75,87.75,100.5,100.5,154.5,154.5,69,69,189, 42,204], # Pasture   - Soil
-#       [   58,   58,   67,   67,  103,  103,34,34, 94, 21,101]]  # Crop      - Soil
-# ])
-
 # carbonEquDense = np.array([
 #       #PFT 1     2     3     4     5     6  7  8   9  10  11
 #     [# Biomass
@@ -66,8 +52,10 @@ harvest = np.array([
     [0.79,0.86,0.81,0.78,0.87,0.87,0.86,0.78,0.78,0.86,0.87], # Fraction of vegetation carbon transferred dead to soil at clearing for primary forest
     [0.71,0.81,0.75,0.70,0.82,0.82,0.81,0.70,0.70,0.81,0.82], # Fraction of vegetation carbon transferred dead to soil at clearing for secondary forest
     [  76,  76,  67,  67, 175, 175,  45,  35,  95,  27, 173] # Minimum soil C following harvest
-#     # [   5,   5,  10,  10,  15,  15,   5,  10,  10,   5,  15] # Time of soil carbon to reach minimum (as found following harvest)
+#     # [   5,   5,  10,  10,  15,  15,   5,  10,  10,   5,  15] # 
 ])
+
+timeMinimumHarvest = np.array([   5,   5,  10,  10,  15,  15,   5,  10,  10,   5,  15])  # Time of soil carbon to reach minimum (as found following harvest)
 
 clearing = np.array([
     #PFT 1    2    3    4    5    6   7   8   9  10  11
