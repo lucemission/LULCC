@@ -149,11 +149,18 @@ class Coordinate:
         self.BetaHarvestEquNext = self.area * self.harvest_transition_pft_fraction.sum(axis=0) * c.carbonEquDense[EQ_BIOMASS, SECOND]
         
         # RUMUS 26
-        self.carbonExcess[EX_BIOMASS, SECOND, HARVEST, :] = self.carbonExcess[EX_BIOMASS,SECOND,HARVEST,:] - (self.BetaHarvestEquNext + self.BetaHarvestExcessPrev)
+        self.carbonExcess[YEAR_LATEST, EX_BIOMASS, SECOND, HARVEST, :] = self.carbonExcess[YEAR_LATEST, EX_BIOMASS,SECOND,HARVEST,:] - (self.BetaHarvestEquNext + self.BetaHarvestExcessPrev.sum(axis=0))
         
         # RUMUS 27
         self.BetaHarvest = self.BetaHarvestEquPrev + self.BetaHarvestExcessPrev
         
+        # RUMUS 28
+        self.carbonExcess[YEAR_LATEST, EX_SOILRAPID, SECOND, HARVEST, :] = self.carbonExcess[YEAR_LATEST, EX_SOILRAPID, SECOND, HARVEST, :] + self.BetaHarvest.sum(axis=0) * c.harvest[CLEAR_SOIL]
+        
+        # RUMUS 29
+        self.carbonExcess[YEAR_LATEST, EX_PRODUCT1, SECOND, HARVEST, :] = self.carbonExcess[YEAR_LATEST, EX_PRODUCT1, SECOND, HARVEST, :] + (self.BetaHarvest * (1-c.harvest[CLEAR_SOIL])).sum(axis=0) * c.harvest[CLEAR_P1]
+        self.carbonExcess[YEAR_LATEST, EX_PRODUCT10, SECOND, HARVEST, :] = self.carbonExcess[YEAR_LATEST, EX_PRODUCT10, SECOND, HARVEST, :] + (self.BetaHarvest * (1-c.harvest[CLEAR_SOIL])).sum(axis=0) * c.harvest[CLEAR_P10]
+        self.carbonExcess[YEAR_LATEST, EX_PRODUCT100, SECOND, HARVEST, :] = self.carbonExcess[YEAR_LATEST, EX_PRODUCT100, SECOND, HARVEST, :] + (self.BetaHarvest * (1-c.harvest[CLEAR_SOIL])).sum(axis=0) * c.harvest[CLEAR_P100]
         
         
     # RUMUS 6

@@ -58,16 +58,16 @@ carbonEquDense = np.array([
 #       [   [88],   [88]]] # Secondary - Soil
 #     ])
 
-# harvest = np.array([
-#     #PFT 1    2    3    4    5    6    7    8    9   10   11
-#     [ 0.9, 0.9, 0.4, 0.4, 0.4, 0.4,   1,   1,   1,   1,   1], # Fraction of roundwood assigned to decay pools after harvest, 1yr
-#     [0.04,0.04,0.24,0.24,0.24,0.24,   0,   0,   0,   0,   0], # Fraction of roundwoodassigned to decay pools after harvest, 10yr
-#     [0.06,0.06,0.36,0.36,0.36,0.36,   0,   0,   0,   0,   0], # Fraction of roundwood assigned to decay pools after harvest, 100yr
-#     [0.79,0.86,0.81,0.78,0.87,0.87,0.86,0.78,0.78,0.86,0.87], # Fraction of vegetation carbon transferred dead to soil at clearing for primary forest
-#     [0.71,0.81,0.75,0.70,0.82,0.82,0.81,0.70,0.70,0.81,0.82], # Fraction of vegetation carbon transferred dead to soil at clearing for secondary forest
-#     [  76,  76,  67,  67, 175, 175,  45,  35,  95,  27, 173] # Minimum soil C following harvest
+harvest = np.array([
+    #PFT 1    2    3    4    5    6    7    8    9   10   11
+    [ 0.9, 0.9, 0.4, 0.4, 0.4, 0.4,   1,   1,   1,   1,   1], # Fraction of roundwood assigned to decay pools after harvest, 1yr
+    [0.04,0.04,0.24,0.24,0.24,0.24,   0,   0,   0,   0,   0], # Fraction of roundwoodassigned to decay pools after harvest, 10yr
+    [0.06,0.06,0.36,0.36,0.36,0.36,   0,   0,   0,   0,   0], # Fraction of roundwood assigned to decay pools after harvest, 100yr
+    [0.79,0.86,0.81,0.78,0.87,0.87,0.86,0.78,0.78,0.86,0.87], # Fraction of vegetation carbon transferred dead to soil at clearing for primary forest
+    [0.71,0.81,0.75,0.70,0.82,0.82,0.81,0.70,0.70,0.81,0.82], # Fraction of vegetation carbon transferred dead to soil at clearing for secondary forest
+    [  76,  76,  67,  67, 175, 175,  45,  35,  95,  27, 173] # Minimum soil C following harvest
 #     # [   5,   5,  10,  10,  15,  15,   5,  10,  10,   5,  15] # Time of soil carbon to reach minimum (as found following harvest)
-# ])
+])
 
 clearing = np.array([
     #PFT 1    2    3    4    5    6   7   8   9  10  11
