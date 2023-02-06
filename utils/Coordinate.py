@@ -147,6 +147,7 @@ class Coordinate:
         
        # Rumus 14 Harvest
         self.BetaHarvestEquNext = self.area * self.harvest_transition_pft_fraction.sum(axis=0) * c.carbonEquDense[EQ_BIOMASS, SECOND]
+        self.carbonEqu[YEAR_LATEST,EQ_BIOMASS, SECOND, :] = self.carbonEqu[YEAR_LATEST,EQ_BIOMASS, SECOND, :] + self.BetaHarvestEquNext
         
         # RUMUS 26
         self.carbonExcess[YEAR_LATEST, EX_BIOMASS, SECOND, HARVEST, :] = self.carbonExcess[YEAR_LATEST, EX_BIOMASS,SECOND,HARVEST,:] - (self.BetaHarvestEquNext + self.BetaHarvestExcessPrev.sum(axis=0))
@@ -161,6 +162,23 @@ class Coordinate:
         self.carbonExcess[YEAR_LATEST, EX_PRODUCT1, SECOND, HARVEST, :] = self.carbonExcess[YEAR_LATEST, EX_PRODUCT1, SECOND, HARVEST, :] + (self.BetaHarvest * (1-c.harvest[CLEAR_SOIL])).sum(axis=0) * c.harvest[CLEAR_P1]
         self.carbonExcess[YEAR_LATEST, EX_PRODUCT10, SECOND, HARVEST, :] = self.carbonExcess[YEAR_LATEST, EX_PRODUCT10, SECOND, HARVEST, :] + (self.BetaHarvest * (1-c.harvest[CLEAR_SOIL])).sum(axis=0) * c.harvest[CLEAR_P10]
         self.carbonExcess[YEAR_LATEST, EX_PRODUCT100, SECOND, HARVEST, :] = self.carbonExcess[YEAR_LATEST, EX_PRODUCT100, SECOND, HARVEST, :] + (self.BetaHarvest * (1-c.harvest[CLEAR_SOIL])).sum(axis=0) * c.harvest[CLEAR_P100]
+        
+        # Rumus 17 Harvest
+        self.SigmaHarvestEquPrev = self.area * self.harvest_transition_pft_fraction * c.carbonEquDense[EQ_SOILSLOW,VIRGIN:SECOND+1]
+        self.carbonEqu[YEAR_LATEST,EQ_SOILSLOW,VIRGIN:SECOND+1,:] = self.carbonEqu[YEAR_LATEST,EQ_SOILSLOW,VIRGIN:SECOND+1,:] - self.SigmaHarvestEquPrev
+        
+        # RUMUS 30
+        self.SigmaHarvestExcessPrev = self.carbonExcess[YEAR_LATEST, EX_SOILSLOW,VIRGIN:SECOND+1, HARVEST,:] * self.harvest_transition_pft_fraction / temp_harvest_cover_fraction
+        
+        # RUMUS 31
+        self.SigmaHarvest = self.SigmaHarvestEquPrev + self.SigmaHarvestExcessPrev
+        
+        # rumus 21 Harvest
+        self.SigmaHarvestEquNext = self.area * self.harvest_transition_pft_fraction.sum(axis=0) * c.carbonEquDense[EQ_BIOMASS, SECOND]
+        self.carbonEqu[YEAR_LATEST,EQ_SOILSLOW, SECOND, :] = self.carbonEqu[YEAR_LATEST,EQ_SOILSLOW, SECOND, :] + self.SigmaHarvestEquNext
+        
+        # RUMUS 32
+        
         
         
     # RUMUS 6
