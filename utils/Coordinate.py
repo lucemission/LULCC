@@ -43,6 +43,10 @@ class Coordinate:
     def updateFractions(self, year):
         if year == 0:
             self.carbonEqu[year,EQ_BIOMASS] = self.area*np.outer(self.states[year], self.pft[year])*c.carbonEquDense[0]
+        else:
+            self.carbonEqu = np.append(self.carbonEqu, self.carbonEqu[YEAR_LATEST].copy()[np.newaxis, :], axis=0)
+        
+        print(self.carbonEqu.shape)
         
         temp_carbonEquDense = c.carbonEquDense[EQ_BIOMASS].copy()
         temp_carbonEquDense[temp_carbonEquDense==0] = 1 # PLACEHOLDER
@@ -60,12 +64,13 @@ class Coordinate:
         self.transition_pft_fraction = np.tile(self.cover_pft_fraction[:,np.newaxis,:], (1,self.COVER_NUM,1)) * np.tile(self.transition_fraction[year][:,:,np.newaxis], (1,1,self.PFT_NUM)) / np.tile(self.temp_cover_fraction[:,np.newaxis,np.newaxis], (1,self.COVER_NUM,self.PFT_NUM))
         
     def event(self):
-        temp_carbonEqu = np.zeros((1,2,4,PFT_NUM))
+        
+        
         
         # RUMUS 10
         self.BetaEquPrev = self.area * self.transition_pft_fraction * np.tile(c.carbonEquDense[EQ_BIOMASS][:,np.newaxis,:], (1,self.COVER_NUM,1))
         # APPEND
-        temp_carbonEqu = self.carbonEqu[YEAR_LATEST,EQ_BIOMASS] - self.BetaEquPrev.sum(axis=1)
+        self.carbonEqu[YEAR_LATEST,EQ_BIOMASS] = self.carbonEqu[YEAR_LATEST,EQ_BIOMASS] - self.BetaEquPrev.sum(axis=1)
         
         # RUMUS 11 
         # (TIDAK DIPAKAI OLEH HARVEST)
