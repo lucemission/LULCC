@@ -8,34 +8,40 @@ import os
 import re
 import netCDF4 as nc
 import numpy as np
-from index import VIRGIN, SECOND, FORESTs, F_SBH, F_SBH2, F_SBH3, F_VBH, F_VBH2
+from index import VIRGIN, SECOND, FORESTs, F_SBH, F_SBH2, F_SBH3, F_VBH, F_VBH2, NATURAL_PFTs
 
 from Coordinate import Coordinate
 
-def coordinatesDict(data_path):
-    coordinates = dict()
+def coordinatesDict(data_path, start_year, duration, input_coordinate):
+    """
+    Membuat dictionary berisi kelas Coordinate untuk tiap pasangan koordinat latitude dan longitude
     
-    # Setting manual
-    latInput = -0.25
-    lonInput = -77.75
+    Parameters:
+        data_path (string): alamat data
+        start_year (int) : tahun dimulainya bookkeeping
+        duration (int) : durasi berjalannya bookkeeping
+        input_coordinate (tuple(int)): koordinat tertentu yang ingin dilakukan bookkeeping
+        
+    Returns:
+        coordinates (dict(Coordinate)) : dictionary berisi kelas Coordinate
+    """
+    coordinates = dict()
     
     lat_coordinates = np.linspace(89.75, -89.75, 360)
     lon_coordinates = np.linspace(-179.75, 179.75, 720)
     
-    # np.where(lon_coordinates==-77.75)
-    
-    initial_states = statesReader(data_path)
-    pft_1500_nc = nc.Dataset(f"{data_path}/PFT/LAND_COV_scen_1500.nc")
-    pft_1500 = pft_1500_nc['vegfract'][0,:11,180,204].data
+    states = statesReader(data_path, start_year, duration)
+    pft = nc.Dataset(f"{data_path}/PFT/LAND_COV_scen_all.nc")['vegfract'][:duration+1, :NATURAL_PFTs].data
+    # pft_1500 = pft_1500_nc['vegfract'][0,:11,180,204].data
     # print(pft_1500.shape)
     
-
-    filename = "lat-0.25lon-77.75.lu"
+    input_lat, input_lon = input_coordinate
+    filename = f"lat{input_lat}lon{input_lon}.lu"
     
     # for filename in os.listdir(f"{data_path}/lu"):  
     # transitions = np.loadtxt(f"{data_path}/lu/{filename}", skiprows=1, usecols=tuple(np.arange(1,12)))
-    column_list = np.append(np.arange(1,12), np.array([13,15,17,19,21]))
-    transitions = np.loadtxt(f"{data_path}/lu/{filename}", skiprows=1, usecols=column_list)
+    transition_columns = np.append(np.arange(1,12), np.array([13,15,17,19,21]))
+    transition = np.loadtxt(f"{data_path}/lu/{filename}", skiprows=1, usecols=transition_columns)
     # print(filename)
     [lat, lon] = extractLatLon(filename)
     
@@ -44,10 +50,11 @@ def coordinatesDict(data_path):
                      
     string = re.sub("(\.|lu)", "",filename)
     coordinates[f"{re.sub('-', '_', string)}"] = Coordinate(
-                                                    transition=cubeTransitions(transitions),
-                                                    harvest_transition = cubeHarvestTransition(transitions),
-                                                    initial_states = extractCoorStates(initial_states, lat_idx, lon_idx),
-                                                    pft = pft_1500)
+                                                    transition=cubeTransitions(transition),
+                                                    harvest_transition = cubeHarvestTransition(transition),
+                                                    initial_states = extract(states, lat_idx, lon_idx),
+                                                    pft = extract(pft, lat_idx, lon_idx),
+                                                    duration=duration)
     return coordinates
 
 def extractLatLon(filename):
@@ -55,21 +62,43 @@ def extractLatLon(filename):
     lon = re.search('lon(.+?)\.lu', filename).group(1)
     return (float(lat), float(lon))
 
-def extractCoorStates(initial_states, lat_idx, lon_idx):
+def extract(fractions, lat_idx, lon_idx):
     # return np.squeeze(initial_states[:,lat_idx, lon_idx])
-    return sumToOne(np.squeeze(initial_states[:,lat_idx, lon_idx]))
+    return sumToOne(np.squeeze(fractions[:,:,lat_idx, lon_idx]))
 
-def sumToOne(states):
-    return states/states.sum()
+def sumToOne(fractions):
+    return fractions/fractions.sum(axis=1)[:, np.newaxis]
 
-def statesReader(data_path):
+def statesReader(data_path, start_year, duration):
+    """
+    Mengambil data cover (a.k.a states) fractions
+    
+    Parameters:
+        data_path (string): alamat data
+        start_year (int): tahun dimulainya bookkeeping
+        duration (int): durasi berjalannya bookkeeping
+        
+    Returns:
+        states (array(int)): pecahan luas cover tiap tahunnya
+    """
+    
     states_path    = f"{data_path}/updated_states"
-    initial_virgin = np.loadtxt(f'{states_path}/gothr.1500.txt')
-    initial_sec    = np.loadtxt(f'{states_path}/gsecd.1500.txt')
-    initial_pasture= np.loadtxt(f'{states_path}/gpast.1500.txt')
-    initial_crop   = np.loadtxt(f'{states_path}/gcrop.1500.txt')
-    initial_states = np.array([initial_virgin, initial_sec, initial_pasture, initial_crop])
-    return initial_states
+    simulated_years = start_year + np.linspace(0, duration, duration+1, dtype=int)
+    for year in simulated_years:
+        if year == start_year:
+            initial_virgin = np.loadtxt(f'{states_path}/gothr.{year}.txt')
+            initial_sec    = np.loadtxt(f'{states_path}/gsecd.{year}.txt')
+            initial_pasture= np.loadtxt(f'{states_path}/gpast.{year}.txt')
+            initial_crop   = np.loadtxt(f'{states_path}/gcrop.{year}.txt')
+            states = np.array([[initial_virgin, initial_sec, initial_pasture, initial_crop]])
+        else:
+            virgin = np.loadtxt(f'{states_path}/gothr.{year}.txt')
+            sec    = np.loadtxt(f'{states_path}/gsecd.{year}.txt')
+            pasture= np.loadtxt(f'{states_path}/gpast.{year}.txt')
+            crop   = np.loadtxt(f'{states_path}/gcrop.{year}.txt')
+            append_states = np.array([[virgin, sec, pasture, crop]])
+            states = np.append(states,append_states, axis=0)
+    return states
 
 def cubeTransitions(transitions1D):
     transitions2D = np.zeros((transitions1D.shape[0],4,4))

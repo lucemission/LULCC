@@ -5,7 +5,7 @@ Spyder Editor
 This is a temporary script file.
 """
 import numpy as np
-from index import YEAR_LATEST,EQ_BIOMASS,EQ_SOILSLOW,EX_BIOMASS,EX_SOILSLOW,EX_SOILRAPID,EX_PRODUCT1,EX_PRODUCT10,EX_PRODUCT100,EX_ATMOSPHERE, VIRGIN, SECOND, PASTURE, CROP, CLEARING, HARVEST, ABANDON, OTHERS, CLEAR_P1, CLEAR_P10, CLEAR_P100, CLEAR_SOIL, CLEAR_SRV, CLEAR_SRS, FORESTs
+from index import YEAR_LATEST,EQ_BIOMASS,EQ_SOILSLOW,EX_BIOMASS,EX_SOILSLOW,EX_SOILRAPID,EX_PRODUCT1,EX_PRODUCT10,EX_PRODUCT100,EX_ATMOSPHERE, VIRGIN, SECOND, PASTURE, CROP, CLEARING, HARVEST, ABANDON, OTHERS, CLEAR_P1, CLEAR_P10, CLEAR_P100, CLEAR_SOIL, CLEAR_SRV, CLEAR_SRS, FORESTs, HARVEST_P1, HARVEST_P10, HARVEST_P100, HARVEST_SOIL_VIRGIN, HARVEST_SOIL_SECOND, HARVEST_MIN_SOIL
 import Constants as c
 
 
@@ -28,18 +28,24 @@ class Coordinate:
     cover_fraction      = np.zeros(4)
     # transition_pft_fraction = np.zeros((4,4,11))
     
-    def __init__(self, transition, harvest_transition, initial_states, pft):
+    def __init__(self, transition, harvest_transition, initial_states, pft, duration):
         self.transition_fraction = transition
         self.harvest_transition = harvest_transition
         self.states = initial_states
         self.pft = pft
-        self.carbonEqu[YEAR_LATEST,EQ_BIOMASS] = self.area*np.outer(self.states, self.pft)*c.carbonEquDense[0]
+        self.duration = duration
         
-    def updateFractions(self):
+    def run(self):
+        for year in range(self.duration+1):
+            self.updateFractions(year)
+            self.event()
+        
+    def updateFractions(self, year):
+        if year == 0:
+            self.carbonEqu[year,EQ_BIOMASS] = self.area*np.outer(self.states[year], self.pft[year])*c.carbonEquDense[0]
+        
         temp_carbonEquDense = c.carbonEquDense[EQ_BIOMASS].copy()
         temp_carbonEquDense[temp_carbonEquDense==0] = 1 # PLACEHOLDER
-        temp1 = self.cover_fraction.copy()
-        temp1[temp1==0] = 1
         
         # RUMUS 7
         self.cover_pft_fraction = self.carbonEqu[YEAR_LATEST,EQ_BIOMASS] / (self.area * temp_carbonEquDense)
@@ -51,13 +57,15 @@ class Coordinate:
         # RUMUS 9
         self.temp_cover_fraction = self.cover_fraction.copy()
         self.temp_cover_fraction[self.temp_cover_fraction==0] = 1  
-        self.transition_pft_fraction = np.tile(self.cover_pft_fraction[:,np.newaxis,:], (1,self.COVER_NUM,1)) * np.tile(self.transition_fraction[0][:,:,np.newaxis], (1,1,self.PFT_NUM)) / np.tile(self.temp_cover_fraction[:,np.newaxis,np.newaxis], (1,self.COVER_NUM,self.PFT_NUM))
+        self.transition_pft_fraction = np.tile(self.cover_pft_fraction[:,np.newaxis,:], (1,self.COVER_NUM,1)) * np.tile(self.transition_fraction[year][:,:,np.newaxis], (1,1,self.PFT_NUM)) / np.tile(self.temp_cover_fraction[:,np.newaxis,np.newaxis], (1,self.COVER_NUM,self.PFT_NUM))
         
+    def event(self):
+        temp_carbonEqu = np.zeros((1,2,4,PFT_NUM))
         
-    def clearing(self):
         # RUMUS 10
         self.BetaEquPrev = self.area * self.transition_pft_fraction * np.tile(c.carbonEquDense[EQ_BIOMASS][:,np.newaxis,:], (1,self.COVER_NUM,1))
-        self.carbonEqu[YEAR_LATEST,EQ_BIOMASS] = self.carbonEqu[YEAR_LATEST,EQ_BIOMASS] - self.BetaEquPrev.sum(axis=1)
+        # APPEND
+        temp_carbonEqu = self.carbonEqu[YEAR_LATEST,EQ_BIOMASS] - self.BetaEquPrev.sum(axis=1)
         
         # RUMUS 11 
         # (TIDAK DIPAKAI OLEH HARVEST)
@@ -68,6 +76,7 @@ class Coordinate:
         # self.carbonExcess11 = self.carbonExcess[-1,0,:,0,:] - self.BetaExcessPrev[:,0,:]
         
         self.BetaExcessPrev = (np.tile(self.carbonExcess[YEAR_LATEST,EX_BIOMASS,:,np.newaxis,:,:], (1,self.COVER_NUM,1,1)) * self.createAltK() / temp_cover_pft_fraction[:,np.newaxis,:]) #.sum(axis=1)
+        # APPEND
         self.carbonExcess[YEAR_LATEST,EX_BIOMASS,:,CLEARING,:] = self.carbonExcess[YEAR_LATEST,EX_BIOMASS,:,CLEARING,:] -  self.BetaExcessPrev.sum(axis=1)[:,CLEARING,:]
         self.carbonExcess[YEAR_LATEST,EX_BIOMASS,:,ABANDON:,:] = self.carbonExcess[YEAR_LATEST,EX_BIOMASS,:,ABANDON:,:] -  self.BetaExcessPrev.sum(axis=1)[:,ABANDON:,:]
         # self.BetaExcessPrev = self.carbonExcess[YEAR_LATEST,EX_BIOMASS,:,:,:] * np.tile(self.transition_pft_fraction.sum(axis=1)[:,np.newaxis,:], (1,self.TRANS_NUM,1)) / temp_cover_pft_fraction #.sum(axis=1)
@@ -82,19 +91,23 @@ class Coordinate:
         
         # # RUMUS 14
         self.BetaEquNext = self.area * self.transition_pft_fraction.sum(axis=0) * c.carbonEquDense[EQ_BIOMASS]
+        # APPEND
         self.carbonEqu[YEAR_LATEST,EQ_BIOMASS] = self.carbonEqu[YEAR_LATEST,EQ_BIOMASS] + self.BetaEquNext
         
         # # RUMUS 15
+        # APPEND
         # PERLU DIPERHATIKAN LAGI
         self.carbonExcess[YEAR_LATEST,EX_BIOMASS,:,CLEARING,:] = self.carbonExcess[YEAR_LATEST,EX_BIOMASS,:,CLEARING,:] - self.BetaEquNext
         
         # # RUMUS 16
+        # APPEND
         self.carbonExcess[YEAR_LATEST,EX_PRODUCT1:EX_PRODUCT100+1,PASTURE:,CLEARING,:] = self.carbonExcess[YEAR_LATEST,EX_PRODUCT1:EX_PRODUCT100+1,PASTURE:,CLEARING,:] + np.tile(self.Beta[np.newaxis,:2,PASTURE:,:].sum(axis=1), (3,1,1)) * np.tile(c.clearing[:CLEAR_P100+1,np.newaxis,:], (1,2,1))
         self.carbonExcess[YEAR_LATEST,EX_SOILRAPID,PASTURE:,CLEARING,:] = self.carbonExcess[YEAR_LATEST,EX_SOILRAPID,PASTURE:,CLEARING,:] + (self.Beta[:SECOND+1,PASTURE:,:] * np.tile(c.clearing[CLEAR_SRV:,np.newaxis,:], (1,2,1))).sum(axis=0) * np.tile(c.clearing[np.newaxis,CLEAR_SOIL], (2,1))
         self.carbonExcess[YEAR_LATEST,EX_SOILSLOW,PASTURE:,CLEARING,:]  = self.carbonExcess[YEAR_LATEST,EX_SOILSLOW,PASTURE:,CLEARING,:]  + (self.Beta[:SECOND+1,PASTURE:,:] * np.tile(c.clearing[CLEAR_SRV:,np.newaxis,:], (1,2,1))).sum(axis=0) * (1 - np.tile(c.clearing[np.newaxis,CLEAR_SOIL], (2,1)))
         
         # # RUMUS 17
         self.SigmaEquPrev = self.area * self.transition_pft_fraction * np.tile(c.carbonEquDense[1][:,np.newaxis,:], (1,4,1))
+        # APPEND
         self.carbonEqu[-1,1] = self.carbonEqu[-1,1] - self.SigmaEquPrev.sum(axis=1)
         
         
@@ -156,12 +169,12 @@ class Coordinate:
         self.BetaHarvest = self.BetaHarvestEquPrev + self.BetaHarvestExcessPrev
         
         # RUMUS 28
-        self.carbonExcess[YEAR_LATEST, EX_SOILRAPID, SECOND, HARVEST, :] = self.carbonExcess[YEAR_LATEST, EX_SOILRAPID, SECOND, HARVEST, :] + self.BetaHarvest.sum(axis=0) * c.harvest[CLEAR_SOIL]
+        self.carbonExcess[YEAR_LATEST, EX_SOILRAPID, SECOND, HARVEST, :] = self.carbonExcess[YEAR_LATEST, EX_SOILRAPID, SECOND, HARVEST, :] + (self.BetaHarvest * c.harvest[HARVEST_SOIL_VIRGIN: HARVEST_SOIL_SECOND+1]).sum(axis=0)
         
         # RUMUS 29
-        self.carbonExcess[YEAR_LATEST, EX_PRODUCT1, SECOND, HARVEST, :] = self.carbonExcess[YEAR_LATEST, EX_PRODUCT1, SECOND, HARVEST, :] + (self.BetaHarvest * (1-c.harvest[CLEAR_SOIL])).sum(axis=0) * c.harvest[CLEAR_P1]
-        self.carbonExcess[YEAR_LATEST, EX_PRODUCT10, SECOND, HARVEST, :] = self.carbonExcess[YEAR_LATEST, EX_PRODUCT10, SECOND, HARVEST, :] + (self.BetaHarvest * (1-c.harvest[CLEAR_SOIL])).sum(axis=0) * c.harvest[CLEAR_P10]
-        self.carbonExcess[YEAR_LATEST, EX_PRODUCT100, SECOND, HARVEST, :] = self.carbonExcess[YEAR_LATEST, EX_PRODUCT100, SECOND, HARVEST, :] + (self.BetaHarvest * (1-c.harvest[CLEAR_SOIL])).sum(axis=0) * c.harvest[CLEAR_P100]
+        self.carbonExcess[YEAR_LATEST, EX_PRODUCT1, SECOND, HARVEST, :] = self.carbonExcess[YEAR_LATEST, EX_PRODUCT1, SECOND, HARVEST, :] + (self.BetaHarvest * (1-c.harvest[HARVEST_SOIL_VIRGIN: HARVEST_SOIL_SECOND+1])).sum(axis=0) * c.harvest[HARVEST_P1]
+        self.carbonExcess[YEAR_LATEST, EX_PRODUCT10, SECOND, HARVEST, :] = self.carbonExcess[YEAR_LATEST, EX_PRODUCT10, SECOND, HARVEST, :] + (self.BetaHarvest * (1-c.harvest[HARVEST_SOIL_VIRGIN: HARVEST_SOIL_SECOND+1])).sum(axis=0) * c.harvest[HARVEST_P10]
+        self.carbonExcess[YEAR_LATEST, EX_PRODUCT100, SECOND, HARVEST, :] = self.carbonExcess[YEAR_LATEST, EX_PRODUCT100, SECOND, HARVEST, :] + (self.BetaHarvest * (1-c.harvest[HARVEST_SOIL_VIRGIN: HARVEST_SOIL_SECOND+1])).sum(axis=0) * c.harvest[HARVEST_P100]
         
         # Rumus 17 Harvest
         self.SigmaHarvestEquPrev = self.area * self.harvest_transition_pft_fraction * c.carbonEquDense[EQ_SOILSLOW,VIRGIN:SECOND+1]
@@ -174,22 +187,22 @@ class Coordinate:
         self.SigmaHarvest = self.SigmaHarvestEquPrev + self.SigmaHarvestExcessPrev
         
         # rumus 21 Harvest
-        self.SigmaHarvestEquNext = self.area * self.harvest_transition_pft_fraction.sum(axis=0) * c.carbonEquDense[EQ_BIOMASS, SECOND]
+        self.SigmaHarvestEquNext = self.area * self.harvest_transition_pft_fraction.sum(axis=0) * c.carbonEquDense[EQ_SOILSLOW, SECOND]
         self.carbonEqu[YEAR_LATEST,EQ_SOILSLOW, SECOND, :] = self.carbonEqu[YEAR_LATEST,EQ_SOILSLOW, SECOND, :] + self.SigmaHarvestEquNext
         
         # RUMUS 32
         # PERLU DIPERHATIKAN LAGI
-        self.SigmaRapid = np.maximum(0, self.SigmaHarvest.sum(axis=0) - self.area * self.harvest_transition_pft_fraction.sum(axis=0) * c.timeMinimumHarvest)
+        self.SigmaRapid = np.maximum(0, self.SigmaHarvest.sum(axis=0) - self.area * self.harvest_transition_pft_fraction.sum(axis=0) * c.harvestMinimumSoil)
         self.carbonExcess[YEAR_LATEST, SECOND, HARVEST, :] = self.carbonExcess[YEAR_LATEST, SECOND, HARVEST, :] + self.SigmaRapid
         
         # RUMUS 33
         self.carbonExcess[YEAR_LATEST, EX_SOILSLOW, SECOND, HARVEST, :] = self.carbonExcess[YEAR_LATEST, EX_SOILSLOW, SECOND, HARVEST, :] - self.SigmaRapid + self.SigmaHarvestEquPrev.sum(axis=0) - self.SigmaHarvestEquNext
         
     # RUMUS 6
-    # def relaxation():
-    #     temp_atm_excess = carbonExcess[-1,6,:,:,:] \
-    #                         + np.sum(carbonExcess[-1,:6,:,:]*np.exp(-1/0.534*c.Timescale))
-    #     np.append(carbonExcess, temp_atm_excess, axis=0)
+    def relaxation(self):
+        temp_atm_excess = self.carbonExcess[-1,6,:,:,:] \
+                            + np.sum(self.carbonExcess[-1,:6,:,:]*np.exp(-1/0.534*c.Timescale))
+        np.append(self.carbonExcess, temp_atm_excess, axis=0)
     
     def createTransitionPftFraction(self):
         temp_cover_fraction = self.cover_fraction.copy()

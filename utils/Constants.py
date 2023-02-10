@@ -55,7 +55,7 @@ harvest = np.array([
 #     # [   5,   5,  10,  10,  15,  15,   5,  10,  10,   5,  15] # 
 ])
 
-timeMinimumHarvest = np.array([   5,   5,  10,  10,  15,  15,   5,  10,  10,   5,  15])  # Time of soil carbon to reach minimum (as found following harvest)
+harvestMinimumSoil = np.array([   5,   5,  10,  10,  15,  15,   5,  10,  10,   5,  15])  # Time of soil carbon to reach minimum (as found following harvest)
 
 clearing = np.array([
     #PFT 1    2    3    4    5    6   7   8   9  10  11
