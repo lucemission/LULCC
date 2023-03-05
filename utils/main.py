@@ -10,9 +10,10 @@ from coordinatesDict import coordinatesDict, simulation
 
 data_04_path = "../../data/1500-2004"
 input_coordinate = (50.25, 10.25)
-start_year = 1500
-duration = 2
-coordinates = coordinatesDict(data_04_path, start_year, duration, input_coordinate)
+start_year = 1873
+end_year = 1973
+grid_size = 0.5
+coordinates = coordinatesDict(data_04_path, start_year, end_year, input_coordinate, grid_size)
 
 coordinates['lat5025lon1025'].run()
 # coordinates['lat5025lon1025'].clearing()

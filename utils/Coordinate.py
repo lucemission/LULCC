@@ -5,6 +5,7 @@ Spyder Editor
 This is a temporary script file.
 """
 import numpy as np
+import matplotlib.pyplot as plt
 from index import YEAR_LATEST,EQ_BIOMASS,EQ_SOILSLOW,EX_BIOMASS,EX_SOILSLOW,EX_SOILRAPID,EX_PRODUCT1,EX_PRODUCT10,EX_PRODUCT100,EX_ATMOSPHERE, VIRGIN, SECOND, PASTURE, CROP, CLEARING, HARVEST, ABANDON, OTHERS, CLEAR_P1, CLEAR_P10, CLEAR_P100, CLEAR_SOIL, CLEAR_SRV, CLEAR_SRS, FORESTs, HARVEST_P1, HARVEST_P10, HARVEST_P100, HARVEST_SOIL_VIRGIN, HARVEST_SOIL_SECOND, HARVEST_MIN_SOIL
 import Constants as c
 
@@ -24,19 +25,54 @@ class Coordinate:
     # Cover: v  s   p   c
     
     # area = 30_802_500
-    area = 1
     cover_pft_fraction  = np.zeros((4,PFT_NUM))
     cover_fraction      = np.zeros(4)
     # transition_pft_fraction = np.zeros((4,4,11))
     
-    def __init__(self, transition, harvest_transition, initial_states, pft, duration):
+    def __init__(self, start_year, transition, harvest_transition, initial_states, pft, duration, area):
+        self.start_year = start_year
         self.transition_fraction = transition
         self.harvest_transition = harvest_transition
         self.states = initial_states
         self.pft = pft
         self.duration = duration
+        self.area = area
     
     def visualize(self):
+        
+        def carbonOverTheYears(coorDict, coor, pool, cover, pft):
+            if pool < 2:
+                return coorDict[coor].carbonEqu[:, pool, cover, pft] + coorDict[coor].carbonExcess[:, pool, cover, :, pft].sum(axis=1)
+            elif pool == 3:
+                return coorDict[coor].carbonExcess[:, pool:pool+3, cover, :, pft].sum(axis=1).sum(axis=1)
+            else:
+                return coorDict[coor].carbonExcess[:, pool, cover, :, pft].sum(axis=1)
+        carbonPools = dict()
+        pools = ['biomass', 'slow soil', 'rapid soil', 'product', 'product 10', 'product 100', 'atm']
+        colors = ['green', 'red', 'pink', 'tab:olive', 'tab:olive','tab:olive', 'blue']
+        
+        fig, ax = plt.subplots()
+        
+        POOL_NUM = 7
+        cover = 1
+        pft = 3
+        
+        years = np.arange(0, 101)
+        for pool_idx in range(POOL_NUM):
+            #     carbonPools[pools[pool_idx]] = 
+            if (pool_idx == 4) or (pool_idx == 5):
+                pass
+            elif (pool_idx < 2):
+                ax.plot(years, self.carbonEqu[:, pool_idx, cover, pft] + self.carbonExcess[:, pool_idx, cover, :, pft].sum(axis=1), label=pools[pool_idx], c=colors[pool_idx])
+            elif (pool_idx == 3):
+                ax.plot(years, self.carbonExcess[:, pool_idx:pool_idx+3, cover, :, pft].sum(axis=1).sum(axis=1), label=pools[pool_idx], c=colors[pool_idx])
+            else: 
+                ax.plot(years, self.carbonExcess[:, pool_idx, cover, :, pft].sum(axis=1), label=pools[pool_idx], c=colors[pool_idx])
+        plt.axvline(x=10, color='grey', linestyle='--')
+        plt.axvline(x=25, color='grey', linestyle='--')
+        plt.axvline(x=40, color='grey', linestyle='--')
+        plt.legend()
+        plt.show()
         
     
     def run(self):
@@ -44,6 +80,7 @@ class Coordinate:
             self.updateFractions(year)
             self.event(year)
             self.relaxation()
+        self.visualize()
         
     def updateFractions(self, year):
         if year == 0:
@@ -208,7 +245,9 @@ class Coordinate:
         relaxed_carbon[:EX_SOILRAPID+1,:,:,:] = self.carbonExcess[YEAR_LATEST,:EX_SOILRAPID+1,:,:,:]*np.exp(-1/c.Timescale)
         relaxed_carbon[EX_PRODUCT1,:,:,:] = self.carbonExcess[YEAR_LATEST,EX_PRODUCT1,:,:,:]*np.exp(-1/np.tile(0.534, (4,4,11)))
         relaxed_carbon[EX_PRODUCT10,:,:,:] = self.carbonExcess[YEAR_LATEST,EX_PRODUCT10,:,:,:]*np.exp(-1/np.tile(5.34, (4,4,11)))
-        relaxed_carbon[EX_PRODUCT100,:,:,:] = self.carbonExcess[YEAR_LATEST,EX_PRODUCT10,:,:,:]*np.exp(-1/np.tile(5.34, (4,4,11)))
+        relaxed_carbon[EX_PRODUCT100,:,:,:] = self.carbonExcess[YEAR_LATEST,EX_PRODUCT100,:,:,:]*np.exp(-1/np.tile(53.4, (4,4,11)))
+        
+    
         
         self.carbonExcess[YEAR_LATEST,EX_ATMOSPHERE,:,:,:] = self.carbonExcess[YEAR_LATEST,EX_ATMOSPHERE,:,:,:] + relaxed_carbon.sum(axis=0)
         self.carbonExcess[YEAR_LATEST,:EX_ATMOSPHERE,:,:,:] = self.carbonExcess[YEAR_LATEST,:EX_ATMOSPHERE,:,:,:] - relaxed_carbon
